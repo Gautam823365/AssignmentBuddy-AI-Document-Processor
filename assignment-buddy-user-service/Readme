@@ -1,0 +1,13 @@
+
+## Getting Started
+
+### Prerequisites
+- Java 11 or above  
+- Maven 3.x  
+- MongoDB installed and running  
+
+### Running Services Individually
+1. **Auth Service**
+```bash
+cd auth-service
+mvn spring-boot:run
