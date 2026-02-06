@@ -1,0 +1,38 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ASSIGNMENT-GATEWAY
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+  cloud:
+    gateway:
+      default-filters:
+        - RemoveRequestHeader=Content-Length
+
+      routes:
+        - id: user-service
+          uri: lb://ASSIGNMENT-BUDDY-USER-SERVICE
+          predicates:
+            - Path=/auth/**
+
+        - id: pdf-service
+          uri: lb://PDF-SERVICE
+          predicates:
+            - Path=/pdf/**
+
+        - id: ai-service
+          uri: lb://AI-SERVICE
+          predicates:
+            - Path=/ai/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
