@@ -10,8 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/auth")
-@CrossOrigin(origins = "http://localhost:4200", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
+@RequestMapping("/api/auth")
 public class AuthController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
@@ -45,8 +44,9 @@ public class AuthController {
             String token = jwtUtil.generateToken(
                     loggedInUser.getId(),
                     loggedInUser.getEmail()
-            );
 
+            );
+            System.out.println("this is my Id :"+loggedInUser.getId());
             return ResponseEntity.ok(
                     new LoginResponse(
                             token,

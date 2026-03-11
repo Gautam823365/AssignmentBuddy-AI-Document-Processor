@@ -5,63 +5,42 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+
 @Service
 public class FileExtractionService {
-   // private final WhisperTranscriptionService whisperService;
-
-//    public FileExtractionService(WhisperTranscriptionService whisperService) {
-//        this.whisperService = whisperService;
-//    }
 
     public String extractText(String filePath, String fileType) {
+        if (filePath == null || filePath.isBlank()) {
+            throw new IllegalArgumentException("File path must not be empty");
+        }
 
-        switch (fileType) {
+        switch (fileType.toUpperCase()) {
             case "PDF":
                 return extractFromPdf(filePath);
-
-//            case "AUDIO":
-//                return whisperService.transcribe(new File(filePath));
-//
-//            case "VIDEO":
-//                File audio = extractAudioFromVideo(filePath);
-//                return whisperService.transcribe(audio);
-
             default:
-                throw new RuntimeException("Unsupported file type");
+                throw new IllegalArgumentException("Unsupported file type: " + fileType);
         }
     }
 
     private String extractFromPdf(String filePath) {
-        try (PDDocument document = PDDocument.load(new File(filePath))) {
+        File file = new File(filePath);
+        if (!file.exists()) {
+            throw new RuntimeException("File not found: " + filePath);
+        }
+
+        try (PDDocument document = PDDocument.load(file)) {
             PDFTextStripper stripper = new PDFTextStripper();
-            return stripper.getText(document);
+            String text = stripper.getText(document);
+
+            if (text == null || text.isBlank()) {
+                throw new RuntimeException("PDF appears to be empty or contains no extractable text: " + filePath);
+            }
+
+            return text.trim();
+        } catch (RuntimeException e) {
+            throw e; // re-throw our own exceptions as-is
         } catch (Exception e) {
-            throw new RuntimeException("PDF extraction failed", e);
+            throw new RuntimeException("PDF extraction failed for: " + filePath, e);
         }
     }
-
-//    private File extractAudioFromVideo(String videoPath) {
-//
-//        try {
-//            String audioPath = videoPath + ".wav";
-//
-//            ProcessBuilder pb = new ProcessBuilder(
-//                    "ffmpeg",
-//                    "-i", videoPath,
-//                    "-vn",
-//                    "-acodec", "pcm_s16le",
-//                    "-ar", "16000",
-//                    audioPath
-//            );
-//
-//            pb.redirectErrorStream(true);
-//            pb.start().waitFor();
-//
-//            return new File(audioPath);
-//
-//        } catch (Exception e) {
-//            throw new RuntimeException("Video to audio conversion failed", e);
-//        }
-//    }
-
 }

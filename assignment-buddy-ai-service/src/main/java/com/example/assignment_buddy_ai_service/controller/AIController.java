@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/ai")
+@RequestMapping("/api/ai")
 public class AIController {
 
     private final AIDocumentService aiService;
@@ -19,7 +19,7 @@ public class AIController {
     }
 
     @PostMapping("/ask")
-    public ResponseEntity<?> askQuestion(@RequestBody AskRequest request) {
+    public ResponseEntity<?> askQuestion(@RequestBody AskRequest request) throws Exception {
         String answer = aiService.askQuestion(
                 request.getId(),
                 request.getQuestion()

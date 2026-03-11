@@ -23,7 +23,7 @@ public class JwtAuthenticationFilter implements GlobalFilter {
         String path = exchange.getRequest().getURI().getPath();
 
         // ✅ Public APIs
-        if (path.startsWith("/auth/")) {
+        if (path.startsWith("/api/auth/")) {
             return chain.filter(exchange);
         }
 

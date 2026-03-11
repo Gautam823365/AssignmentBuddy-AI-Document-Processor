@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/pdf")
+@RequestMapping("/api/pdf")
 public class UploadedFileController {
 
     private final UploadedFileServiceDetail uploadedFileService;
@@ -21,23 +21,28 @@ public class UploadedFileController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<?> uploadFile(@RequestParam MultipartFile file) throws IOException {
-
-        UploadedFileDocument savedFile = uploadedFileService.storeFile(file);
-
+    public ResponseEntity<?> uploadFile(
+            @RequestParam MultipartFile file,
+            @RequestParam String userId) throws IOException {
+        UploadedFileDocument savedFile = uploadedFileService.storeFile(file, userId);
         return ResponseEntity.ok(savedFile);
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<List<UploadedFileDocument>> getAllFiles() {
-        List<UploadedFileDocument> files = uploadedFileService.getAllFiles();
-        return ResponseEntity.ok(files);
+    @GetMapping("/all/{userId}")
+    public ResponseEntity<List<UploadedFileDocument>> getAllFiles(
+            @PathVariable String userId) {
+        return ResponseEntity.ok(uploadedFileService.getAllFilesByUser(userId));
     }
+
+    // AI-SERVICE calls this via Eureka: GET http://PDF-SERVICE/api/pdf/text/{id}
     @GetMapping("/text/{id}")
     public ResponseEntity<String> getText(@PathVariable String id) {
-        String text = uploadedFileService.getExtractedTextById(id);
-        return ResponseEntity.ok(text);
+        return ResponseEntity.ok(uploadedFileService.getExtractedTextById(id));
     }
 
-
+//    @DeleteMapping("/delete/{id}")
+//    public ResponseEntity<?> deleteFile(@PathVariable String id) {
+//        uploadedFileService.deleteFile(id);
+//        return ResponseEntity.ok("File deleted successfully");
+//    }
 }

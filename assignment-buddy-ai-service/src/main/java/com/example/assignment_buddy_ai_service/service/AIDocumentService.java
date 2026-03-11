@@ -3,6 +3,7 @@ package com.example.assignment_buddy_ai_service.service;
 
 import com.example.assignment_buddy_ai_service.ai.KeywordAISearch;
 import com.example.assignment_buddy_ai_service.ai.TextChunker;
+import com.example.assignment_buddy_ai_service.ai.VectorSearch;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -17,17 +18,17 @@ public class AIDocumentService {
         this.restTemplate = restTemplate;
     }
 
-    public String askQuestion(String fileId, String question) {
+    public String askQuestion(String fileId, String question) throws Exception {
 
         // 🔥 Call PDF-SERVICE via Eureka
         String extractedText = restTemplate.getForObject(
-                "http://PDF-SERVICE/pdf/text/" + fileId,
+                "http://PDF-SERVICE/api/pdf/text/" + fileId,
                 String.class
         );
 
 
         List<String> chunks = TextChunker.chunkText(extractedText);
 
-        return KeywordAISearch.findBestAnswer(chunks, question);
+        return  LLMService.askLLM(chunks, question);
     }
 }

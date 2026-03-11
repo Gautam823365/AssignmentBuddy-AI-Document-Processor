@@ -1,74 +1,73 @@
 package com.example.assignment_buddy_pdf_service.service;
 
-
-
 import com.example.assignment_buddy_pdf_service.model.UploadedFileDocument;
 import com.example.assignment_buddy_pdf_service.repository.UploadedFileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class UploadedFileServiceDetail {
 
-    private final UploadedFileRepository repository;
-    private final FileExtractionService fileExtractionService;
+    private final UploadedFileRepository fileRepository;
+    private final FileExtractionService extractionService;
 
-    private static final String UPLOAD_DIR =
-            System.getProperty("user.dir") + File.separator + "uploads";
+    // Folder where uploaded PDFs are saved on disk
+    private static final String UPLOAD_DIR = "uploads/";
 
-    public UploadedFileServiceDetail(UploadedFileRepository repository,
-                                     FileExtractionService fileExtractionService) {
-        this.repository = repository;
-        this.fileExtractionService = fileExtractionService;
+    public UploadedFileServiceDetail(UploadedFileRepository fileRepository,
+                                     FileExtractionService extractionService) {
+        this.fileRepository    = fileRepository;
+        this.extractionService = extractionService;
     }
 
-    private String detectType(String contentType) {
-        if (contentType == null) return "UNKNOWN";
-        if (contentType.contains("pdf")) return "PDF";
-      //  if (contentType.contains("audio")) return "AUDIO";
-        //if (contentType.contains("video")) return "VIDEO";
-        return "UNKNOWN";
+    // ── Save uploaded file to disk + MongoDB ─────────────────────────────────
+    public UploadedFileDocument storeFile(MultipartFile file, String userId) throws IOException {
+
+        // Create uploads folder if it doesn't exist
+        File uploadDir = new File(UPLOAD_DIR);
+        if (!uploadDir.exists()) uploadDir.mkdirs();
+
+        // Save file to disk
+        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        Path filePath = Paths.get(UPLOAD_DIR + fileName);
+        Files.write(filePath, file.getBytes());
+
+        // Save metadata to MongoDB
+        UploadedFileDocument doc = new UploadedFileDocument();
+        doc.setFileName(file.getOriginalFilename());
+        doc.setFilePath(filePath.toString());
+        doc.setFileType("PDF");
+        doc.setFileSize(file.getSize());
+        doc.setUploadedBy(userId);
+        doc.setUploadedAt(LocalDateTime.now());
+
+        return fileRepository.save(doc);
     }
 
-    public UploadedFileDocument storeFile(MultipartFile file) throws IOException {
-
-        // ✅ create absolute upload dir
-        File dir = new File(UPLOAD_DIR);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-
-        // ✅ absolute file path
-        String filePath = UPLOAD_DIR + File.separator + file.getOriginalFilename();
-        file.transferTo(new File(filePath));
-
-        String type = detectType(file.getContentType());
-
-        String extractedText =
-                fileExtractionService.extractText(filePath, type);
-
-        UploadedFileDocument document = new UploadedFileDocument();
-        document.setFileName(file.getOriginalFilename());
-        document.setFileType(type);
-        document.setFilePath(filePath);
-        document.setExtractedText(extractedText);
-
-        return repository.save(document);
-    }
-    public String getExtractedTextById(String id) {
-        UploadedFileDocument doc = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("File not found"));
-        return doc.getExtractedText();
+    // ── Get all files for a specific user ────────────────────────────────────
+    public List<UploadedFileDocument> getAllFilesByUser(String userId) {
+        return fileRepository.findByUploadedBy(userId);
     }
 
-    public List<UploadedFileDocument> getAllFiles() {
-        return repository.findAll();
+    // ── Extract and return text from a PDF by file ID ────────────────────────
+    // Called by UploadedFileController GET /api/pdf/text/{id}
+    // AI-SERVICE calls this endpoint via Eureka
+    public String getExtractedTextById(String fileId) {
+
+        UploadedFileDocument fileDoc = fileRepository.findById(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found: " + fileId));
+
+        return extractionService.extractText(
+                fileDoc.getFilePath(),
+                fileDoc.getFileType()
+        );
     }
-
-
 }
